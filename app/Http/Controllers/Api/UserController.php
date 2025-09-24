@@ -10,6 +10,8 @@ use App\Http\Requests\UpdateUser;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Spatie\Activitylog\Models\Activity;
 use App\Repositories\UserRepositoryInterface;
 
 class UserController extends Controller
@@ -39,6 +41,12 @@ class UserController extends Controller
 
         $user = $this->userRepository->create($data);
 
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($user)
+            ->withProperties(['attributes' => $data])
+            ->log('created user');
+
         return response()->json([
             'message' => 'User created successfully',
             'user'    => $user
@@ -47,7 +55,6 @@ class UserController extends Controller
 
    public function update(UpdateUser $request, $id)
     {
-        dd($request->validated());
         try 
         {
             DB::beginTransaction();
@@ -57,6 +64,16 @@ class UserController extends Controller
             }
             $data = $request->only(['name', 'email', 'password', 'contact_number', 'address']);
             $updatedUser = $this->userRepository->update($user, $data);
+            
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($updatedUser)
+                ->withProperties([
+                    'old' => $oldData,
+                    'attributes' => $data
+                ])
+                ->log('updated user');
+            
             DB::commit();
             return response()->json([
                 'message' => 'User updated successfully',
@@ -83,21 +100,69 @@ class UserController extends Controller
         $user = $this->userRepository->find($id);
         if (! $user) return response()->json(['error' => 'Not found'], 404);
 
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($user)
+            ->log('soft deleted user');
+
         $this->userRepository->softDelete($user);
         return response()->json(['message' => 'User soft deleted']);
     }
 
     public function restore($id)
     {
-        $user = $this->userRepository->restore($id);
-        return $user ? response()->json(['message' => 'User restored', 'user' => $user]) 
-                     : response()->json(['error' => 'Not found or not deleted'], 404);
+        $user = $this->userRepository->findTrashed($id);
+        if (! $user) return response()->json(['error' => 'Not found or not deleted'], 404);
+
+        $restoredUser = $this->userRepository->restore($user);
+
+        // Activity log
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($restoredUser)
+            ->log('restored user');
+
+        return response()->json([
+            'message' => 'User restored successfully',
+            'user'    => $restoredUser
+        ]);
     }
 
     public function forceDelete($id)
     {
-        $deleted = $this->userRepository->forceDelete($id);
-        return $deleted ? response()->json(['message' => 'User permanently deleted'])
-                        : response()->json(['error' => 'Not found'], 404);
+        $user = $this->userRepository->findTrashed($id);
+        if (! $user) return response()->json(['error' => 'Not found'], 404);
+
+        $this->userRepository->forceDelete($user);
+
+        // Activity log
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($user)
+            ->log('permanently deleted user');
+
+        return response()->json(['message' => 'User permanently deleted']);
+    }
+
+    public function logs($id)
+    {
+        $user = $this->userRepository->findWithTrashed($id);
+        if (! $user) return response()->json(['error' => 'User not found'], 404);
+
+        $logs = \Spatie\Activitylog\Models\Activity::where('subject_type', User::class)
+            ->where('subject_id', $user->id)
+            ->with('causer')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($log) {
+                return [
+                    'action'       => $log->description,
+                    'performed_by' => $log->causer ? $log->causer->name : 'System',
+                    'changes'      => $log->properties,
+                    'date'         => $log->created_at->format('Y-m-d H:i:s')
+                ];
+            });
+
+        return response()->json($logs);
     }
 }

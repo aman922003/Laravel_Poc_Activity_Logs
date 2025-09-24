@@ -18,5 +18,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete']);
+    Route::get('/users/{id}/logs', [UserController::class, 'logs']);
 });
     Route::post('/users/{id}/restore', [UserController::class, 'restore']);
