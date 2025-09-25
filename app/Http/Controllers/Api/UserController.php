@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateUser;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Activitylog\Models\Activity;
 use App\Repositories\UserRepositoryInterface;
 
 class UserController extends Controller
@@ -70,6 +71,12 @@ class UserController extends Controller
             $data['password'] = Hash::make($data['password']);
             $user = $this->userRepository->create($data);
 
+        activity()
+            ->causedBy(auth()->user() ?? $user)   // admin or self
+            ->performedOn($user)
+            ->withProperties(['attributes' => $user->toArray()])
+            ->log('Created user');
+
             return ['message' => 'User created successfully', 'user' => $user, 'status' => 201];
         });
     }
@@ -93,6 +100,16 @@ class UserController extends Controller
             }
 
             $updatedUser = $this->userRepository->update($user, $data);
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($updatedUser)
+            ->withProperties([
+                'old' => $original,
+                'changes' => $updatedUser->getChanges()
+            ])
+            ->log('Updated user');
+
             return ['message' => 'User updated successfully', 'user' => $updatedUser];
         });
     }
@@ -116,6 +133,13 @@ class UserController extends Controller
             }
 
             $this->userRepository->softDelete($user);
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($user)
+            ->withProperties(['id' => $user->id, 'name' => $user->name])
+            ->log('Soft deleted user');
+
             return ['message' => 'User soft deleted'];
         });
     }
@@ -131,6 +155,11 @@ class UserController extends Controller
        return handleTransaction(function () use ($id) {
             $user = $this->userRepository->restore($id);
             if (! $user) return ['error' => 'Not found or not deleted', 'status' => 404];
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($restored)
+            ->log('Restored user');
 
             return ['message' => 'User restored', 'user' => $user];
         });
@@ -156,6 +185,11 @@ class UserController extends Controller
             }
 
             $this->userRepository->forceDelete($id);
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties(['id' => $id])
+            ->log('Permanently deleted user');
 
             return ['message' => 'User permanently deleted'];
         });

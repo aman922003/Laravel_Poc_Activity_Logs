@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Requests\LoginUserRequest;
+use Spatie\Activitylog\Models\Activity;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -27,6 +28,12 @@ class AuthController extends Controller
                 'created_by'     => auth()->check() ? auth()->id() : null,
                 'updated_by'     => null,
             ]);
+
+        activity()
+            ->causedBy($user)                     // who did it (the new user or admin)
+            ->performedOn($user)                  // subject of action
+            ->withProperties(['ip' => request()->ip()]) // extra meta
+            ->log('User registered');
 
             return [
                 'message' => 'User registered successfully',
@@ -50,6 +57,12 @@ class AuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
+        activity()
+            ->causedBy($user)
+            ->performedOn($user)
+            ->withProperties(['ip' => request()->ip(), 'token' => 'created'])
+            ->log('User logged in');
+
             return [
                 'message' => 'Login successful',
                 'token'   => $token,
@@ -65,6 +78,12 @@ class AuthController extends Controller
     {
         return handleTransaction(function () {
             auth()->user()->tokens()->delete();
+
+        activity()
+            ->causedBy($request->user())
+            ->performedOn($request->user())
+            ->withProperties(['ip' => request()->ip()])
+            ->log('User logged out');
 
             return ['message' => 'Logged out successfully'];
         });

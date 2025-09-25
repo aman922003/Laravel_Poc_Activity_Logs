@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ActivityController;
 
 // Public routes
 Route::prefix('auth')->group(function () {
@@ -25,6 +26,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [UserController::class, 'destroy']); // DELETE /users/{id}
         Route::delete('/{id}/force-delete', [UserController::class, 'forceDelete']); // DELETE /users/{id}/force-delete
         Route::post('/{id}/restore', [UserController::class, 'restore']); // POST /users/{id}/restore
+    });
+
+    Route::prefix('activities')->group(function () {
+        Route::get('/', [ActivityController::class, 'index']);
+        Route::get('/{id}', [ActivityController::class, 'show']);
     });
 
 });

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable
 {
@@ -42,12 +43,25 @@ class User extends Authenticatable
         'password',
     ];
 
+    /**
+     * 
+     * Creator
+     */
     public function creator() {
     return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * 
+     * Editor
+     */
     public function editor() {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    // Spatie config for this model
+    protected static $logAttributes = ['name','email','contact_number','address'];
+    protected static $logOnlyDirty = true;   // only store changed fields on update
+    protected static $logName = 'user';      // nice name in activity logs
 
 }
