@@ -14,89 +14,150 @@ use App\Repositories\UserRepositoryInterface;
 
 class UserController extends Controller
 {
+    /**
+     * @var UserRepositoryInterface
+     */
     private $userRepository;
 
+    /**
+     * UserController constructor.
+     *
+     * @param UserRepositoryInterface $userRepository
+     */
     public function __construct(UserRepositoryInterface $userRepository)
     {
         $this->userRepository = $userRepository;
     }
 
+    /**
+     * Display a listing of all users.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index()
     {
-        return response()->json($this->userRepository->all());
+        return handleTransaction(function () {
+            $users = $this->userRepository->all();
+            return ['users' => $users];
+        });
     }
 
+    /**
+     * Display a specific user by ID.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($id)
     {
-        $user = $this->userRepository->find($id);
-        return $user ? response()->json($user) : response()->json(['error' => 'Not found'], 404);
+        return handleTransaction(function () use ($id) {
+            $user = $this->userRepository->find($id);
+            if (! $user) return ['error' => 'User not found', 'status' => 404];
+            return ['user' => $user];
+        });
     }
 
+    /**
+     * Store a newly created user.
+     *
+     * @param StoreUser $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(StoreUser $request)
     {
-        $data = $request->validated();
-        $data['password'] = Hash::make($data['password']);
+        return handleTransaction(function () use ($request) {
+            $data = $request->validated();
+            $data['password'] = Hash::make($data['password']);
+            $user = $this->userRepository->create($data);
 
-        $user = $this->userRepository->create($data);
-
-        return response()->json([
-            'message' => 'User created successfully',
-            'user'    => $user
-        ], 201);
+            return ['message' => 'User created successfully', 'user' => $user, 'status' => 201];
+        });
     }
 
+    /**
+     * Update the specified user by ID.
+     *
+     * @param UpdateUser $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
    public function update(UpdateUser $request, $id)
     {
-        try 
-        {
-            DB::beginTransaction();
+        return handleTransaction(function () use ($request, $id) {
             $user = $this->userRepository->find($id);
-            if (! $user) {
-                return response()->json(['error' => 'User not found'], 404);
-            }
+            if (! $user) return ['error' => 'User not found', 'status' => 404];
+
             $data = $request->only(['name', 'email', 'password', 'contact_number', 'address']);
+            if (isset($data['password'])) {
+                $data['password'] = Hash::make($data['password']);
+            }
+
             $updatedUser = $this->userRepository->update($user, $data);
-            DB::commit();
-            return response()->json([
-                'message' => 'User updated successfully',
-                'user'    => $updatedUser
-            ], 200);
-
-        } catch (\Throwable $t) {
-            DB::rollBack();
-
-            Log::error("Exception in User Update: " . $t->getMessage(), [
-                'trace' => $t->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'error'   => 'Something went wrong while updating user',
-                'message' => $t->getMessage()
-            ], 500);
-        }
+            return ['message' => 'User updated successfully', 'user' => $updatedUser];
+        });
     }
 
 
+    /**
+     * Soft delete a user by ID.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id)
     {
-        $user = $this->userRepository->find($id);
-        if (! $user) return response()->json(['error' => 'Not found'], 404);
+        return handleTransaction(function () use ($id) {
+            $user = $this->userRepository->find($id);
+            if (! $user) return ['error' => 'User not found', 'status' => 404];
 
-        $this->userRepository->softDelete($user);
-        return response()->json(['message' => 'User soft deleted']);
+            // Prevent user from deleting themselves
+            if ($user->id === auth()->id()) {
+                return ['error' => 'You cannot delete your own account', 'status' => 403];
+            }
+
+            $this->userRepository->softDelete($user);
+            return ['message' => 'User soft deleted'];
+        });
     }
 
+    /**
+     * Restore a soft deleted user by ID.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function restore($id)
     {
-        $user = $this->userRepository->restore($id);
-        return $user ? response()->json(['message' => 'User restored', 'user' => $user]) 
-                     : response()->json(['error' => 'Not found or not deleted'], 404);
+       return handleTransaction(function () use ($id) {
+            $user = $this->userRepository->restore($id);
+            if (! $user) return ['error' => 'Not found or not deleted', 'status' => 404];
+
+            return ['message' => 'User restored', 'user' => $user];
+        });
     }
 
+    /**
+     * Permanently delete a user by ID.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function forceDelete($id)
     {
-        $deleted = $this->userRepository->forceDelete($id);
-        return $deleted ? response()->json(['message' => 'User permanently deleted'])
-                        : response()->json(['error' => 'Not found'], 404);
+        return handleTransaction(function () use ($id) {
+            $user = $this->userRepository->find($id);
+            if (! $user) {
+                return ['error' => 'User not found', 'status' => 404];
+            }
+
+            // Prevent user from deleting themselves
+            if ($user->id === auth()->id()) {
+                return ['error' => 'You cannot delete your own account', 'status' => 403];
+            }
+
+            $this->userRepository->forceDelete($id);
+
+            return ['message' => 'User permanently deleted'];
+        });
     }
 }

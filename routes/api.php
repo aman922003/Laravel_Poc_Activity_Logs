@@ -5,18 +5,26 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+});
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
 
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/{id}', [UserController::class, 'show']);
-    Route::post('/users', [UserController::class, 'store']);
-    Route::put('/users/{id}', [UserController::class, 'update']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
-    Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete']);
+    // Auth routes
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    // User routes with common prefix
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'index']);          // GET /users
+        Route::get('/{id}', [UserController::class, 'show']);      // GET /users/{id}
+        Route::post('/', [UserController::class, 'store']);        // POST /users
+        Route::put('/{id}', [UserController::class, 'update']);    // PUT /users/{id}
+        Route::delete('/{id}', [UserController::class, 'destroy']); // DELETE /users/{id}
+        Route::delete('/{id}/force-delete', [UserController::class, 'forceDelete']); // DELETE /users/{id}/force-delete
+        Route::post('/{id}/restore', [UserController::class, 'restore']); // POST /users/{id}/restore
+    });
+
 });
-    Route::post('/users/{id}/restore', [UserController::class, 'restore']);

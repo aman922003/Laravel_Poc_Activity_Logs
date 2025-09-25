@@ -38,7 +38,7 @@ class UpdateUser extends FormRequest
             'password' => [
                 'nullable',     // not required unless updating
                 'string',
-                'min:4',        // at least 8 characters
+                'min:4',        // at least 4 characters
                 'regex:/[A-Z]/',    // at least one uppercase
                 'regex:/[a-z]/',    // at least one lowercase
                 'regex:/[0-9]/',    // at least one digit
@@ -46,7 +46,7 @@ class UpdateUser extends FormRequest
             ],
             'contact_number' => [
                 'required',
-                'digits_between:10,15', // must be 10–15 digits
+                'digits:10', // must be 10 digits
             ],
             'address' => ['required', 'string', 'max:500'],
         ];

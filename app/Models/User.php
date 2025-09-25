@@ -9,8 +9,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
+    // Add API token support, notifications, and soft delete functionality
     use HasApiTokens, Notifiable, SoftDeletes;
 
+    /**
+     * The attributes that are mass assignable.
+     * 
+     * These are the fields that can be set via
+     * create() or update() methods to prevent mass assignment vulnerabilities.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'email',
@@ -21,6 +30,14 @@ class User extends Authenticatable
         'updated_by',
     ];
 
+    /**
+     * The attributes that should be hidden for arrays or JSON.
+     * 
+     * These attributes will not be visible when returning
+     * the user model as JSON (e.g., in API responses).
+     *
+     * @var array<int, string>
+     */
     protected $hidden = [
         'password',
     ];
