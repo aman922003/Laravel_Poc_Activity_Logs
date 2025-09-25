@@ -41,4 +41,13 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
     ];
+
+    public function creator() {
+    return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function editor() {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
 }

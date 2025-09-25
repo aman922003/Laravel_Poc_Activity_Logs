@@ -37,7 +37,8 @@ class UserRepository implements UserRepositoryInterface
     public function create(array $data): User
     {
         $data['password'] = Hash::make($data['password']);
-        $data['created_by'] = auth()->id();
+        // $data['created_by'] = auth()->id();
+        $data['created_by'] = auth()->check() ? auth()->user()->name : null;
         return User::create($data);
     }
 
@@ -53,7 +54,8 @@ class UserRepository implements UserRepositoryInterface
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
-        $data['updated_by'] = auth()->id();
+        // $data['updated_by'] = auth()->id();
+        $data['updated_by'] = auth()->check() ? auth()->user()->name : null;
         $user->update($data);
         return $user;
     }
