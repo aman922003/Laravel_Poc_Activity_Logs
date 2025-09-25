@@ -39,6 +39,12 @@ class UserController extends Controller
     {
         return handleTransaction(function () {
             $users = $this->userRepository->all();
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties(['count' => count($users)])
+            ->log('Viewed user list');
+
             return ['users' => $users];
         });
     }
@@ -54,6 +60,13 @@ class UserController extends Controller
         return handleTransaction(function () use ($id) {
             $user = $this->userRepository->find($id);
             if (! $user) return ['error' => 'User not found', 'status' => 404];
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($user)
+            ->withProperties(['id' => $id, 'name' => $user->name])
+            ->log('Viewed user details');
+
             return ['user' => $user];
         });
     }
