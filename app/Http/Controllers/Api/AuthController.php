@@ -8,11 +8,24 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Requests\LoginUserRequest;
-use Spatie\Activitylog\Models\Activity;
+use App\Services\ActivityLogger;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * @var ActivityLogger
+     */
+    private $logger;
+
+    /**
+     * AuthController constructor.
+     */
+    public function __construct(ActivityLogger $logger)
+    {
+        $this->logger = $logger;
+    }
+
     /**
      * Register a new user
      */
@@ -29,11 +42,7 @@ class AuthController extends Controller
                 'updated_by'     => null,
             ]);
 
-        activity()
-            ->causedBy($user)                     // who did it (the new user or admin)
-            ->performedOn($user)                  // subject of action
-            ->withProperties(['ip' => request()->ip()]) // extra meta
-            ->log('User registered');
+            $this->logger->log('User registered', $user, ['registered_via' => 'api']);
 
             return [
                 'message' => 'User registered successfully',
@@ -57,11 +66,7 @@ class AuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-        activity()
-            ->causedBy($user)
-            ->performedOn($user)
-            ->withProperties(['ip' => request()->ip(), 'token' => 'created'])
-            ->log('User logged in');
+            $this->logger->log('User logged in', $user, ['token' => 'created']);
 
             return [
                 'message' => 'Login successful',
@@ -76,14 +81,11 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        return handleTransaction(function () {
-            auth()->user()->tokens()->delete();
+        return handleTransaction(function () use ($request) {
+            $user = $request->user();
+            $user->tokens()->delete();
 
-        activity()
-            ->causedBy($request->user())
-            ->performedOn($request->user())
-            ->withProperties(['ip' => request()->ip()])
-            ->log('User logged out');
+            $this->logger->log('User logged out', $user);
 
             return ['message' => 'Logged out successfully'];
         });
