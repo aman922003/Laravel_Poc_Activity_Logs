@@ -84,7 +84,7 @@ class UserController extends Controller
             // $data['password'] = Hash::make($data['password']);
             $user = $this->userRepository->create($data);
 
-            $logger->log('User created', $user);
+            $this->logger->log('User created', $user);
 
             return ['message' => 'User created successfully', 'user' => $user, 'status' => 201];
         });
