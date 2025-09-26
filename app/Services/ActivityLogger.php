@@ -27,4 +27,23 @@ class ActivityLogger
             ], $properties))
             ->log($message);
     }
+    //  public function log(string $message, ?Model $subject = null, array $properties = [], $causer = null): void
+    // {
+    //     $causer = $causer ?? auth()->user();
+
+    //     $activity = activity()
+    //         ->causedBy($causer);
+
+    //     // Only call performedOn() if subject is not null
+    //     if ($subject !== null) {
+    //         $activity->performedOn($subject);
+    //     }
+
+    //     $activity
+    //         ->withProperties(array_merge([
+    //             'ip' => request()->ip(),
+    //             'url' => request()->fullUrl(),
+    //         ], $properties))
+    //         ->log($message);
+    // }
 }
