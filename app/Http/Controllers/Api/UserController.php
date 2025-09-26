@@ -137,10 +137,16 @@ class UserController extends Controller
 
             $updatedUser = $this->userRepository->update($user, $data);
 
-            $this->logger->log('User updated', $updatedUser, [
-                'old' => $original,
-                'changes' => $updatedUser->getChanges(),
-            ]);
+            // $this->logger->log('User updated', $updatedUser, [
+            //     'old' => $original,
+            //     'changes' => $updatedUser->getChanges(),
+            // ]);
+            $this->logger->logUserUpdate(
+                $updatedUser,
+                $original,
+                $updatedUser->getChanges()
+            );
+
 
             return ['message' => 'User updated successfully', 'user' => $updatedUser];
         });
