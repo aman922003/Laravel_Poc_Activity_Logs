@@ -40,35 +40,28 @@ class ActivityLogger
     {
         $causer = $causer ?? auth()->user();
 
-        activity()
+        // activity()
+        //     ->causedBy($causer)
+        //     ->performedOn($subject)
+        //     ->withProperties(array_merge([
+        //         'ip' => request()->ip(),
+        //         'url' => request()->fullUrl(),
+        //     ], $properties))
+        //     ->log($message);
+        $logger = activity()
             ->causedBy($causer)
-            ->performedOn($subject)
-            ->withProperties(array_merge([
+            ->withProperties([
                 'ip' => request()->ip(),
                 'url' => request()->fullUrl(),
-            ], $properties))
-            ->log($message);
+            ]);
+
+        if ($subject instanceof \Illuminate\Database\Eloquent\Model) {
+            $logger->performedOn($subject);
+        }
+
+        $logger->log($message);
     }
-    //  public function log(string $message, ?Model $subject = null, array $properties = [], $causer = null): void
-    // {
-    //     $causer = $causer ?? auth()->user();
-
-    //     $activity = activity()
-    //         ->causedBy($causer);
-
-    //     // Only call performedOn() if subject is not null
-    //     if ($subject !== null) {
-    //         $activity->performedOn($subject);
-    //     }
-
-    //     $activity
-    //         ->withProperties(array_merge([
-    //             'ip' => request()->ip(),
-    //             'url' => request()->fullUrl(),
-    //         ], $properties))
-    //         ->log($message);
-    // }
-
+   
      /**
      * Special log method for user updates with dynamic messages.
      */
