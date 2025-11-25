@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Requests\LoginUserRequest;
-use App\Services\ActivityLogger;
+// use App\Services\ActivityLogger;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -42,7 +42,7 @@ class AuthController extends Controller
                 'updated_by'     => null,
             ]);
 
-             $this->logger->log('User registered', $user, ['registered_via' => 'api'], $user);
+            //  $this->logger->log('User registered', $user, ['registered_via' => 'api'], $user);
 
             return [
                 'message' => 'User registered successfully',
@@ -66,7 +66,7 @@ class AuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            $this->logger->log('User logged in', $user, ['token' => 'created'], $user);
+            // $this->logger->log('User logged in', $user, ['token' => 'created'], $user);
 
             return [
                 'message' => 'Login successful',
@@ -85,7 +85,7 @@ class AuthController extends Controller
             $user = $request->user();
             $user->tokens()->delete();
 
-            $this->logger->log('User logged out', $user, [], $user);
+            // $this->logger->log('User logged out', $user, [], $user);
 
             return ['message' => 'Logged out successfully'];
         });

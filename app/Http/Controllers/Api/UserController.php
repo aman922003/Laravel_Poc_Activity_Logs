@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
-use App\Services\ActivityLogger;
+// use App\Services\ActivityLogger;
 use App\Repositories\UserRepositoryInterface;
 
 class UserController extends Controller
@@ -31,10 +31,11 @@ class UserController extends Controller
      *
      * @param UserRepositoryInterface $userRepository
      */
-    public function __construct(UserRepositoryInterface $userRepository , ActivityLogger $logger)
+    // public function __construct(UserRepositoryInterface $userRepository , ActivityLogger $logger)
+    public function __construct(UserRepositoryInterface $userRepository)
     {
         $this->userRepository = $userRepository;
-        $this->logger = $logger;
+        // $this->logger = $logger;
     }
 
     /**
@@ -46,8 +47,7 @@ class UserController extends Controller
     {
         return handleTransaction(function () {
             $users = $this->userRepository->all();
-
-            $this->logger->log('Viewed user list', null, ['count' => count($users)]);
+            // $this->logger->log('Viewed user list', null, ['count' => count($users)]);
 
             return ['users' => $users];
         });
@@ -65,7 +65,7 @@ class UserController extends Controller
             $user = $this->userRepository->find($id);
             if (! $user) return ['error' => 'User not found', 'status' => 404];
 
-        $this->logger->log('Viewed user details', $user, ['id' => $id, 'name' => $user->name]);
+        // $this->logger->log('Viewed user details', $user, ['id' => $id, 'name' => $user->name]);
 
             return ['user' => $user];
         });
@@ -84,7 +84,7 @@ class UserController extends Controller
             // $data['password'] = Hash::make($data['password']);
             $user = $this->userRepository->create($data);
 
-            $this->logger->log('User created', $user);
+            // $this->logger->log('User created', $user);
 
             return ['message' => 'User created successfully', 'user' => $user, 'status' => 201];
         });
@@ -141,11 +141,11 @@ class UserController extends Controller
             //     'old' => $original,
             //     'changes' => $updatedUser->getChanges(),
             // ]);
-            $this->logger->logUserUpdate(
-                $updatedUser,
-                $original,
-                $updatedUser->getChanges()
-            );
+            // $this->logger->logUserUpdate(
+            //     $updatedUser,
+            //     $original,
+            //     $updatedUser->getChanges()
+            // );
 
 
             return ['message' => 'User updated successfully', 'user' => $updatedUser];
@@ -172,7 +172,7 @@ class UserController extends Controller
 
             $this->userRepository->softDelete($user);
 
-            $this->logger->log('User soft deleted', $user);
+            // $this->logger->log('User soft deleted', $user);
 
             return ['message' => 'User soft deleted'];
         });
@@ -190,7 +190,7 @@ class UserController extends Controller
             $user = $this->userRepository->restore($id);
             if (! $user) return ['error' => 'Not found or not deleted', 'status' => 404];
 
-            $this->logger->log('User restored', $user);
+            // $this->logger->log('User restored', $user);
 
             return ['message' => 'User restored', 'user' => $user];
         });
@@ -217,7 +217,7 @@ class UserController extends Controller
 
             $this->userRepository->forceDelete($id);
 
-            $this->logger->log('User permanently deleted', $user, ['id' => $id]);
+            // $this->logger->log('User permanently deleted', $user, ['id' => $id]);
 
             return ['message' => 'User permanently deleted'];
         });
